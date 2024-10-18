@@ -13,7 +13,8 @@ public class Juego extends InterfaceJuego
 	private Isla[] islas;
 	private Tortuga[] tortugas;
 	private BolaFuego bola;
-//	private Image fondo;
+	private Image casaGnomo;
+	private Gnomo[] gnomos;
 	
 	Juego()
 	{
@@ -21,15 +22,31 @@ public class Juego extends InterfaceJuego
 		this.entorno = new Entorno(this, "Proyecto para TP", 810, 600);
 //		fondo = Herramientas.cargarImagen("Fondo.gif");
 		this.pep = new Personaje(350, entorno.ancho()/2, entorno);
+		this.casaGnomo = Herramientas.cargarImagen("CasaGnomo.png");
 		this.islas = new Isla[15];
 		this.tortugas = new Tortuga[9];
+		this.gnomos = new Gnomo[4];
 		// Inicializar lo que haga falta para el juego:
 		
 		//Islas:
 		int k = 0;
 		for(int i = 1; i <= 5; i++) {
 			for(int j = 1; j <= i; j++) {
-				this.islas[k] = new Isla((j*entorno.ancho()/(i+1))-52+(20*j), i*110, entorno); //Coordenadas necesarias para formar una pirámide.
+				if(i == 5) {
+					this.islas[k] = new Isla((j*entorno.ancho()/(i+1))-92+(2*j)*(i*3), i*110, entorno);
+				}
+				if(i == 4) {
+					this.islas[k] = new Isla((j*entorno.ancho()/(i+1))-60+(2*j)*(i*3), i*110, entorno);
+				}
+				if(i == 3) {
+					this.islas[k] = new Isla((j*entorno.ancho()/(i+1)) - (2*j) +5, i*110, entorno);
+				}
+				if(i == 2) {
+					this.islas[k] = new Isla((j*entorno.ancho()/(i+1)) - (2*j) +5, i*110, entorno);
+				}
+				if(i == 1) {
+					this.islas[k] = new Isla(entorno.ancho()/2, 110, entorno);
+				}
 				k++;
 			}
 		}
@@ -38,14 +55,19 @@ public class Juego extends InterfaceJuego
 		for(int i = 0; i < this.tortugas.length; i++) {
 			this.tortugas[i] = new Tortuga(entorno);
 		}
-		
+		//Gnomo:
+		for(int i = 0; i < this.gnomos.length; i++) {
+			this.gnomos[i] = new Gnomo(entorno);
+		}
 		this.entorno.iniciar();
+		
 	}
 
 	
 	public void tick()
 	{
 //		entorno.dibujarImagen(fondo, entorno.ancho() / 2, entorno.alto() / 2, 0, 1);
+		entorno.dibujarImagen(casaGnomo, entorno.ancho()/2, 58, 0, 0.17);
 		//Procesamiento de un instante de tiempo:
 		chequearTeclas();
 		
@@ -82,20 +104,52 @@ public class Juego extends InterfaceJuego
 			}
 		}
 		
+		//Gnomo:
+		for(Gnomo gnomo : gnomos) {
+			if(gnomo != null) {
+				gnomo.movVertical();
+			}
+		}
+		for(int i = 0; i < gnomos.length; i++) {
+			if(gnomos[i] != null) {
+			if(pisandoIslaGnomo(gnomos[i], islas)) {
+				this.gnomos[i].estaApoyado = true;
+				this.gnomos[i].mover(this.gnomos[i].direccion);
+			} else {
+				this.gnomos[i].estaApoyado = false;
+				this.gnomos[i].cambiarDireccion();
+			}} else {
+				gnomos[i] = new Gnomo(entorno);
+			}
+		}
+		for(int i = 0; i < gnomos.length; i++) {
+			if(gnomos[i] != null && gnomos[i].seCayo()) {
+				gnomos[i] = null;
+			}
+		}
 		
+
 		//Dibujar:
 		this.pep.mostrar();
+		
 		if(pep.disparando && bola != null) {
 			this.bola.mostrar();
 			this.bola.mover();
 		}
+		
 		for(Isla i: islas) {
 			i.mostrar();
 		}
+		
 		for(Tortuga t : this.tortugas) {
 			t.mostrar();
 		}
-		
+		for(Gnomo g : this.gnomos) {
+			if(g != null) {
+				g.mostrar();
+			}
+		}
+
 		//Salir: (Cierra ventana cuando el personaje cae.
 		if(this.pep.getBordeSup() > this.entorno.alto()) {
 			System.exit(0);
@@ -103,17 +157,17 @@ public class Juego extends InterfaceJuego
 	}
 	
 	public void chequearTeclas() {
-		if(entorno.estaPresionada(entorno.TECLA_DERECHA)) {
+		if(entorno.estaPresionada(entorno.TECLA_DERECHA) && !tocoPared(pep, islas)) {
 			this.pep.mover(2);
 		}
-		if(entorno.estaPresionada(entorno.TECLA_IZQUIERDA)) {
+		if(entorno.estaPresionada(entorno.TECLA_IZQUIERDA) && !tocoPared(pep, islas)) {
 			this.pep.mover(-2);
 		}
 		if(entorno.sePresiono(entorno.TECLA_ARRIBA) && (pisandoIsla(pep, islas)>=0)) {
 			this.pep.saltar();
 		}
 		if(entorno.sePresiono('c') && bola == null && pep.estaApoyado) {
-			pep.disparar();
+			this.pep.disparar();
 			bola = new BolaFuego(pep.x, pep.y, pep.direccion, entorno);
 		}
 
@@ -134,9 +188,26 @@ public class Juego extends InterfaceJuego
 
 	
 	private boolean tocoTecho(Personaje p, Isla i) {
-		return (Math.abs(p.getBordeSup()- i.getBordeInf()) < 2) && (p.getBordeDer() > (i.getBordeIzq()+1)) && (p.getBordeIzq() < (i.getBordeDer()+1));
+		return ((Math.abs(p.getBordeSup()- i.getBordeInf()) < 2)
+				&& (p.getBordeDer() > (i.getBordeIzq()))
+				&& (p.getBordeIzq() < (i.getBordeDer())));
 	}
-		
+	
+	private boolean tocoPared(Personaje p, Isla i) {
+		return (Math.abs(p.y - i.y) < i.alto && Math.abs(p.getBordeDer() - i.getBordeIzq()) < 2)
+				||
+				(Math.abs(p.y - i.y) < i.alto && Math.abs(p.getBordeIzq() - i.getBordeDer()) < 2);
+	}
+	
+	private boolean tocoPared(Personaje p, Isla[] islas) {
+		for(int i = 0; i < this.islas.length; i++){
+			if(tocoPared(p, this.islas[i])){
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	private boolean tocoTecho(Personaje p, Isla[] islas) {
 		for(int i = 0; i < this.islas.length; i++) {
 			if(tocoTecho(p, this.islas[i])) {
@@ -160,7 +231,18 @@ public class Juego extends InterfaceJuego
 		return -1;
 	}
 
-	
+	private boolean pisandoIslaGnomo(Gnomo g, Isla i) {
+		return (Math.abs(g.getBordeInf() - i.getBordeSup()) < 1) && (g.getBordeDer() > i.getBordeIzq()) && (g.getBordeIzq() < i.getBordeDer());
+	}
+		
+	private boolean pisandoIslaGnomo(Gnomo g, Isla[] islas) {
+		for(int i = 0; i < this.islas.length; i++) {
+			if(pisandoIslaGnomo(g, this.islas[i])) {
+				return true;
+			}
+		}
+		return false;
+	}
 	@SuppressWarnings("unused")
 	public static void main(String[] args)
 	{
