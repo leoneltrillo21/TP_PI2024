@@ -16,7 +16,6 @@ public class Tortuga {
 	double velocidad;
 	Entorno e;
 	boolean estaApoyado;
-	int isla;
 	
 	public Tortuga(Entorno e) {
 		this.x = Math.random()*800.0; //Número aleatorio menor al ancho de la ventana de juego.
@@ -25,31 +24,30 @@ public class Tortuga {
 			if((this.x > 25 && this.x < 350) || (this.x > 400 && this.x < 800)) { // Coordenadas que tiene que cumplir "x" para que la tortuga no se genere fuera de una isla.
 				xok = true;
 			} else {	
-				this.x = Math.random()*1150.0;
+				this.x = Math.random()*800.0;
 			}
 		}
-		this.y = 0;
+		this.y = 100;
 		this.e = e;
 		this.direccion = false;
 		this.escala = 0.03;
-		this.velocidad = 0.8;
+		this.velocidad = 0.5;
 		this.imagenDer = entorno.Herramientas.cargarImagen("TortugaDer.png");
 		this.imagenIzq = entorno.Herramientas.cargarImagen("TortugaIzq.png");
 		this.ancho = imagenDer.getWidth(null)*this.escala;
 		this.alto = imagenDer.getHeight(null)*this.escala;
 		this.estaApoyado = false;
-		this.isla = -1;
 	}
 	
 	public void mover(Isla i) {
 		if(direccion) {
-			x--;
+			x = x - velocidad;
 			if(x < i.getBordeIzq()) {
 				this.direccion = !this.direccion;
 			}
 		}
 		else {
-			x++;
+			x = x + velocidad;
 			if(x > i.getBordeDer()) {
 				this.direccion = !this.direccion;
 			}
